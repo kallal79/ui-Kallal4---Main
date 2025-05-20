@@ -4,6 +4,11 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
+    "upgrade:check": "bash ./pre-upgrade-check.sh",
+    "upgrade:react19": "bash ./upgrade-to-react-v19.sh",
+    "upgrade:verify": "bash ./post-upgrade-verify.sh",
+    "upgrade:analyze": "echo 'Opening React v19 compatibility analysis...' && start react-v19-compatibility-analysis.md",
+    "upgrade:plan": "echo 'Opening React v19 upgrade plan...' && start react-v19-upgrade-plan.md",
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
