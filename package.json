@@ -29,7 +29,7 @@
     "@react-three/drei": "^9.80.0",
     "@react-three/fiber": "^8.13.6",
     "@tanstack/react-query": "^5.67.1",
-    "@tanstack/react-query-devtools": "^5.67.1",
+    "@tanstack/react-query-devtools": "^5.75.2",
     "@types/js-yaml": "^4.0.9",
     "@xyflow/react": "^12.4.4",
     "axios": "^1.8.2",
