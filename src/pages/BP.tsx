@@ -39,7 +39,7 @@ import ArrowRightAltIcon from '@mui/icons-material/ArrowRightAlt';
 import { useLocation, useNavigate } from 'react-router-dom';
 import {
   getTabsStyles,
-  StyledTab,
+  // StyledTab,
 } from '../components/BindingPolicy/styles/CreateBindingPolicyStyles';
 import { api } from '../lib/api';
 import BPSkeleton from '../components/ui/BPSkeleton';
@@ -56,9 +56,10 @@ const EmptyState: React.FC<{
 
   switch (type) {
     case 'clusters':
-      title = 'No Clusters Found';
-      description = 'No clusters are available. Please ensure you have access to clusters.';
-      buttonText = 'Go to Clusters';
+      title = 'No Ready Clusters';
+      description =
+        'No clusters are currently available for binding. You need to have at least one cluster in "Ready" state before creating binding policies.';
+      buttonText = 'Manage Clusters';
       break;
     case 'workloads':
       title = 'No Workloads Found';
@@ -388,8 +389,64 @@ const BP = () => {
     }
 
     // Update clusters state when clustersData changes
-    if (clustersData && !clustersLoading) {
-      setAvailableClusters(clustersData.clusters || []);
+    if (clustersData) {
+      let clusterData: ManagedCluster[] = [];
+
+      // Process the main clusters array from the API response
+      if (clustersData.clusters && Array.isArray(clustersData.clusters)) {
+        clusterData = clustersData.clusters.map(cluster => {
+          const status = cluster.status as { capacity?: { [key: string]: string } };
+          const capacity = status?.capacity || {};
+
+          return {
+            name: cluster.name,
+            status: cluster.available ? 'Ready' : 'NotReady',
+            labels: cluster.labels || { 'kubernetes.io/cluster-name': cluster.name },
+            metrics: {
+              cpu: typeof capacity === 'object' && capacity.cpu ? capacity.cpu : 'N/A',
+              memory: typeof capacity === 'object' && capacity.memory ? capacity.memory : 'N/A',
+              storage:
+                typeof capacity === 'object' && capacity['ephemeral-storage']
+                  ? capacity['ephemeral-storage']
+                  : 'N/A',
+            },
+            available: cluster.available,
+            joined: cluster.joined,
+            context: cluster.context || 'its1',
+          };
+        });
+      }
+
+      // Include ITS data if it exists
+      if (clustersData.itsData && Array.isArray(clustersData.itsData)) {
+        const itsClusterData: ManagedCluster[] = clustersData.itsData.map(
+          (cluster: { name: string; labels?: { [key: string]: string } }) => ({
+            name: cluster.name,
+            status: 'Ready', // Default status for ITS clusters
+            labels: cluster.labels || { 'kubernetes.io/cluster-name': cluster.name },
+            metrics: {
+              cpu: 'N/A',
+              memory: 'N/A',
+              storage: 'N/A',
+            },
+            available: true,
+            joined: true,
+            context: 'its1',
+          })
+        );
+
+        // Merge the cluster data arrays, avoiding duplicates by name
+        const existingNames = new Set(clusterData.map(c => c.name));
+        const uniqueItsData = itsClusterData.filter(c => !existingNames.has(c.name));
+        clusterData = [...clusterData, ...uniqueItsData];
+      }
+
+      setClusters(clusterData);
+      setAvailableClusters(clusterData);
+    } else {
+      // If no clusters data, set to empty array
+      setClusters([]);
+      setAvailableClusters([]);
     }
 
     // Update workloads state when workloadsData changes
@@ -430,20 +487,6 @@ const BP = () => {
     workloadsData,
     workloadsLoading,
   ]);
-
-  // Set up clusters for visualization/drag-drop
-  useEffect(() => {
-    // Update clusters state when clustersData changes
-    if (clustersData && !clustersLoading) {
-      const clusterData = clustersData.clusters.map(cluster => ({
-        name: cluster.name,
-        status: cluster.available ? 'Ready' : 'NotReady',
-        labels: cluster.labels || {},
-        context: cluster.context || 'its1',
-      }));
-      setClusters(clusterData);
-    }
-  }, [clustersData, clustersLoading]);
 
   // Memoize the delete handlers for consistent hook usage
   const handleDeletePolicy = useCallback(async (policy: BindingPolicyInfo) => {
@@ -547,16 +590,9 @@ const BP = () => {
         // Use the mutation for creating a binding policy
         await createBindingPolicyMutation.mutateAsync(formattedPolicyData);
 
-        // Close the dialog and show success message
         setCreateDialogOpen(false);
-        setSuccessMessage(`Binding Policy "${policyData.name}" created successfully`);
       } catch (error) {
         console.error('Error creating binding policy:', error);
-        // Still close the dialog but show error message
-        setCreateDialogOpen(false);
-        setSuccessMessage(
-          `Error creating Binding Policy "${policyData.name}": ${error instanceof Error ? error.message : 'Unknown error'}`
-        );
       }
     },
     [createBindingPolicyMutation, setSuccessMessage, setCreateDialogOpen]
@@ -665,8 +701,6 @@ const BP = () => {
         setBindingPolicies(current =>
           current.filter(policy => !results.success.includes(policy.name))
         );
-
-        setSuccessMessage(`Successfully deleted ${results.success.length} binding policies`);
       } else {
         setSuccessMessage(
           `Deleted ${results.success.length} policies, but failed to delete ${results.failures.length} policies`
@@ -738,6 +772,9 @@ const BP = () => {
             aria-label="binding policy view mode"
             sx={getTabsStyles(theme)}
           >
+            {/* 
+            This is commented out because the Visualize tab is not working yet. So we're only showing the Table View by default no need to show it as a tab for now.
+            
             <StyledTab
               iconPosition="start"
               label="Table View"
@@ -746,7 +783,7 @@ const BP = () => {
                 color: theme === 'dark' ? '#E5E7EB' : undefined,
               }}
             />
-            {/* <StyledTab
+            <StyledTab
               iconPosition="start"
               label="Visualize"
               value="visualize"
@@ -763,7 +800,7 @@ const BP = () => {
               <BPSkeleton rows={5} />
             ) : clusters.length === 0 && workloads.length === 0 ? (
               <EmptyState onCreateClick={() => navigate('/its')} type="both" />
-            ) : clusters.length === 0 ? (
+            ) : !clusters.some(cluster => cluster.available === true) ? (
               <EmptyState onCreateClick={() => navigate('/its')} type="clusters" />
             ) : workloads.length === 0 ? (
               <EmptyState onCreateClick={() => navigate('/workloads/manage')} type="workloads" />
@@ -773,6 +810,7 @@ const BP = () => {
               <>
                 <BPTable
                   policies={paginatedPolicies}
+                  clusters={clusters}
                   onDeletePolicy={handleDeletePolicy}
                   onEditPolicy={handleEditPolicy}
                   activeFilters={activeFilters}
@@ -792,7 +830,9 @@ const BP = () => {
           </>
         ) : viewMode === 'visualize' ? (
           <>
-            {clusters.length === 0 || workloads.length === 0 ? (
+            {clusters.length === 0 ||
+            !clusters.some(cluster => cluster.status === 'Ready' || cluster.available) ||
+            workloads.length === 0 ? (
               <Box
                 sx={{
                   height: 'calc(100vh - 170px)',
@@ -811,7 +851,7 @@ const BP = () => {
               >
                 {clusters.length === 0 && workloads.length === 0 ? (
                   <EmptyState onCreateClick={() => navigate('/its')} type="both" />
-                ) : clusters.length === 0 ? (
+                ) : !clusters.some(cluster => cluster.status === 'Ready' || cluster.available) ? (
                   <EmptyState onCreateClick={() => navigate('/its')} type="clusters" />
                 ) : (
                   <EmptyState

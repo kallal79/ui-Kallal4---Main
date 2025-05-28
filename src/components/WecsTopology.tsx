@@ -668,7 +668,14 @@ const WecsTreeview = () => {
       let isDeploymentOrJobPod = false;
       if (type.toLowerCase() === 'pod' && parent) {
         const parentType = parent.split(':')[0]?.toLowerCase();
-        isDeploymentOrJobPod = ['deployment', 'replicaset', 'job'].includes(parentType);
+        isDeploymentOrJobPod = [
+          'deployment',
+          'replicaset',
+          'job',
+          'statefulset',
+          'daemonset',
+          'cronjob',
+        ].includes(parentType);
       }
 
       const node =
@@ -1584,20 +1591,19 @@ const WecsTreeview = () => {
               anchorReference="anchorPosition"
               anchorPosition={contextMenu ? { top: contextMenu.y, left: contextMenu.x } : undefined}
               PaperProps={{
-                style: {
-                  backgroundColor: theme === 'dark' ? '#1F2937' : '#fff',
-                  color: theme === 'dark' ? '#fff' : 'inherit',
-                  boxShadow:
-                    theme === 'dark'
-                      ? '0 4px 20px rgba(0, 0, 0, 0.5)'
-                      : '0 4px 20px rgba(0, 0, 0, 0.15)',
+                sx: {
+                  backgroundColor: theme === 'dark' ? '#0F172A' : '#ffffff',
+                  color: theme === 'dark' ? '#ffffff' : '#000000',
+                  boxShadow: '0 4px 20px rgba(0, 0, 0, 0.15)',
+                  borderRadius: 1,
+                  minWidth: 180,
                 },
               }}
             >
               <MenuItem
                 onClick={() => handleMenuAction('Details')}
                 sx={{
-                  color: theme === 'dark' ? '#fff' : 'inherit',
+                  color: theme === 'dark' ? '#DEE6EB' : '#000000',
                   '&:hover': {
                     backgroundColor:
                       theme === 'dark' ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.04)',
@@ -1606,10 +1612,11 @@ const WecsTreeview = () => {
               >
                 Details
               </MenuItem>
+
               <MenuItem
                 onClick={() => handleMenuAction('Edit')}
                 sx={{
-                  color: theme === 'dark' ? '#fff' : 'inherit',
+                  color: theme === 'dark' ? '#DEE6EB' : '#000000',
                   '&:hover': {
                     backgroundColor:
                       theme === 'dark' ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.04)',
@@ -1625,7 +1632,7 @@ const WecsTreeview = () => {
                   <MenuItem
                     onClick={() => handleMenuAction('Logs')}
                     sx={{
-                      color: theme === 'dark' ? '#fff' : 'inherit',
+                      color: theme === 'dark' ? '#DEE6EB' : '#000000',
                       '&:hover': {
                         backgroundColor:
                           theme === 'dark' ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.04)',
