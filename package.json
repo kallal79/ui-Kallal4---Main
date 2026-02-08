@@ -39,7 +39,7 @@
     "framer-motion": "^12.5.0",
     "js-yaml": "^4.1.0",
     "lodash": "^4.17.21",
-    "lucide-react": "^0.474.0",
+    "lucide-react": "^0.562.0",
     "monaco-editor": "^0.52.2",
     "nanoid": "^5.0.9",
     "puppeteer-core": "^24.1.1",
